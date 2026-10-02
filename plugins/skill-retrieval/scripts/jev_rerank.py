@@ -37,8 +37,9 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-TS_URL = "https://api.typesafe.ai/v1/systemone"
-MODEL_DEFAULT = "jev-latest"
+# local: OpenRouter decisions endpoint (same wire shape), key = OPENROUTER_API_KEY
+TS_URL = "https://openrouter.ai/api/alpha/decisions"
+MODEL_DEFAULT = "~typesafe/jev-latest"
 ENV_PREFIX_RE = re.compile(
     r"^(ignore( all)?( previous| prior)? (instructions|prompts?|messages?)"
     r"|disregard( all)? (instructions|prompts?)"
@@ -94,7 +95,7 @@ def _env_or_envfile(name: str) -> str:
     return ""
 
 
-RERANK_MODE = _parse_rerank_env(_env_or_envfile("SKILL_RETRIEVAL_RERANK"))
+RERANK_MODE = _parse_rerank_env(_env_or_envfile("SKILL_RETRIEVAL_RERANK") or "jev")  # local: jev on by default
 
 #: BM25 shortlist size fed to the reranker (TOP_K is carved out of this).
 RERANK_CANDIDATES = 12
@@ -136,15 +137,7 @@ def _load_key() -> str | None:
 
     Honors $HERMES_HOME; falls back to ~/.hermes. Returns None when absent.
     """
-    for env_path in _env_paths():
-        try:
-            for line in open(env_path):
-                m = re.match(r"^(?:TYPESAFE_API_KEY|TYPESAFE_KEY)=(\S+)", line.strip())
-                if m:
-                    return m.group(1)
-        except OSError:
-            continue
-    return None
+    return _env_or_envfile("OPENROUTER_API_KEY").strip() or None
 
 
 def build_request(query: str, shortlist: "list[tuple[str, str]]") -> "tuple[dict, dict]":
@@ -162,7 +155,9 @@ def build_request(query: str, shortlist: "list[tuple[str, str]]") -> "tuple[dict
         questions[f"rel_{skill_id}"] = {
             "type": "noul",
             "instructions": (
-                "Is this skill relevant to serve the user's query intent? "
+                # local: name the skill — the generic wording got 0.97 for every candidate
+                f"Is the skill '{skill_id}' (described in state.skills['{skill_id}']) "
+                "relevant to serve the user's query intent? "
                 "Judge semantic intent match, not exact word overlap."
             ),
             "criteria": {

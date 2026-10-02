@@ -5,8 +5,13 @@ sys.path). The plugin package imports the same file as
 ``scripts.bm25_retriever``. Alias those names onto one module object so
 index caches are not split across two identities.
 """
+import os
 import sys
 from pathlib import Path
+
+# fork defaults: compaction off, rerank on. The suite exercises compaction and
+# the opt-in rerank path, so pin the upstream defaults before modules import.
+os.environ.setdefault("SKILL_RETRIEVAL_COMPACT", "1")
 
 import pytest
 

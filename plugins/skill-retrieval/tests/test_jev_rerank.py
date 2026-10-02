@@ -43,13 +43,21 @@ def _fresh_mod():
 # Env gate
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def test_rerank_disabled_by_default(monkeypatch, tmp_path):
-    """No env var set and no .env flag → rerank disabled."""
+def test_rerank_enabled_by_default(monkeypatch, tmp_path):
+    """Fork default: no env var and no .env flag → rerank on."""
     monkeypatch.delenv("SKILL_RETRIEVAL_RERANK", raising=False)
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))  # hermetic: no real .env
     monkeypatch.setenv("HOME", str(tmp_path))
     mod = _fresh_mod()
-    assert mod.RERANK_MODE == "off"
+    assert mod.RERANK_MODE == "jev"
+
+
+def test_questions_name_their_skill():
+    """Identical generic instructions made Jev answer 0.97 for every skill."""
+    mod = _fresh_mod()
+    questions, _ = mod.build_request("q", [("a", "x"), ("b", "y")])
+    assert "'a'" in questions["rel_a"]["instructions"]
+    assert questions["rel_a"]["instructions"] != questions["rel_b"]["instructions"]
 
 
 def test_rerank_enabled_with_jev(monkeypatch):
@@ -205,7 +213,7 @@ def test_empty_shortlist_no_call(monkeypatch, tmp_path):
 
 def test_rerank_disabled_short_circuits(monkeypatch, tmp_path):
     """RERANK_MODE off → rerank() returns the BM25 order and never touches env/key."""
-    monkeypatch.delenv("SKILL_RETRIEVAL_RERANK", raising=False)
+    monkeypatch.setenv("SKILL_RETRIEVAL_RERANK", "off")
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))  # hermetic: no real .env
     monkeypatch.setenv("HOME", str(tmp_path))
     mod = _fresh_mod()

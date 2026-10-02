@@ -115,7 +115,7 @@ def _parse_bool_env(raw: str | None, *, default: bool = True) -> bool:
 
 
 TOP_K = _parse_top_k(os.environ.get("SKILL_RETRIEVAL_TOP_K"))
-COMPACT_SYSTEM_PROMPT = _parse_bool_env(os.environ.get("SKILL_RETRIEVAL_COMPACT"))
+COMPACT_SYSTEM_PROMPT = _parse_bool_env(os.environ.get("SKILL_RETRIEVAL_COMPACT"), default=False)  # local: never touch the system prompt
 
 # Capability snapshots captured from the llm_request middleware: the skill
 # names currently visible in Hermes' <available_skills> block, keyed by
